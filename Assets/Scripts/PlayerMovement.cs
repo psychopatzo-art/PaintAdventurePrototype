@@ -11,6 +11,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Double Jump")]
     public int maxJumps = 2;
 
+    [Header("Coyote Time")]
+    public float coyoteTime = 0.15f;
+
     [Header("Gravity")]
     public float gravityMultiplier = 2f;
     public float fallMultiplier = 5f;
@@ -21,8 +24,10 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private Vector3 moveInput;
+
     private int jumpCount;
     private bool isGrounded;
+    private float coyoteTimeCounter;
 
     private void Awake()
     {
@@ -38,15 +43,30 @@ public class PlayerMovement : MonoBehaviour
 
         moveInput = new Vector3(horizontal, 0f, vertical).normalized;
 
-        if (Input.GetKeyDown(KeyCode.Space) && jumpCount < maxJumps)
+        if (isGrounded)
         {
-            Vector3 velocity = rb.linearVelocity;
-            velocity.y = 0f;
-            rb.linearVelocity = velocity;
+            coyoteTimeCounter = coyoteTime;
+        }
+        else
+        {
+            coyoteTimeCounter -= Time.deltaTime;
+        }
 
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            if (coyoteTimeCounter > 0f)
+            {
+                DoJump();
 
-            jumpCount++;
+                jumpCount = 1;
+                coyoteTimeCounter = 0f;
+            }
+            else if (jumpCount < maxJumps)
+            {
+                DoJump();
+
+                jumpCount++;
+            }
         }
     }
 
@@ -67,20 +87,34 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void CheckGrounded()
+    private void DoJump()
     {
-        bool wasGrounded = isGrounded;
+        Vector3 velocity = rb.linearVelocity;
+        velocity.y = 0f;
+        rb.linearVelocity = velocity;
 
-        isGrounded = Physics.Raycast(
-            transform.position,
-            Vector3.down,
-            groundCheckDistance,
-            groundLayers
-        );
-
-        if (!wasGrounded && isGrounded)
-        {
-            jumpCount = 0;
-        }
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
+
+    private void CheckGrounded()
+{
+    bool wasGrounded = isGrounded;
+
+    isGrounded = Physics.Raycast(
+        transform.position,
+        Vector3.down,
+        groundCheckDistance,
+        groundLayers
+    );
+
+    if (!wasGrounded && isGrounded)
+    {
+        jumpCount = 0;
+    }
+
+    if (wasGrounded && !isGrounded)
+    {
+        jumpCount = 1;
+    }
+}
 }
