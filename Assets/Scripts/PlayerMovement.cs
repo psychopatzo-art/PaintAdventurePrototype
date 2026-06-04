@@ -14,6 +14,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("Coyote Time")]
     public float coyoteTime = 0.15f;
 
+    [Header("Jump Buffer")]
+public float jumpBufferTime = 0.15f;
+
     [Header("Gravity")]
     public float gravityMultiplier = 2f;
     public float fallMultiplier = 5f;
@@ -28,6 +31,7 @@ public class PlayerMovement : MonoBehaviour
     private int jumpCount;
     private bool isGrounded;
     private float coyoteTimeCounter;
+    private float jumpBufferCounter;
 
     private void Awake()
     {
@@ -53,21 +57,32 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (Input.GetKeyDown(KeyCode.Space))
-        {
-            if (coyoteTimeCounter > 0f)
-            {
-                DoJump();
+{
+    jumpBufferCounter = jumpBufferTime;
+}
+else
+{
+    jumpBufferCounter -= Time.deltaTime;
+}
 
-                jumpCount = 1;
-                coyoteTimeCounter = 0f;
-            }
-            else if (jumpCount < maxJumps)
-            {
-                DoJump();
+if (jumpBufferCounter > 0f)
+{
+    if (coyoteTimeCounter > 0f)
+    {
+        DoJump();
 
-                jumpCount++;
-            }
-        }
+        jumpCount = 1;
+        coyoteTimeCounter = 0f;
+        jumpBufferCounter = 0f;
+    }
+    else if (jumpCount < maxJumps)
+    {
+        DoJump();
+
+        jumpCount++;
+        jumpBufferCounter = 0f;
+    }
+}
     }
 
     private void FixedUpdate()
