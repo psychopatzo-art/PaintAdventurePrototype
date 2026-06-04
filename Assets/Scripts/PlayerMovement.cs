@@ -1,9 +1,13 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
     public float moveSpeed = 16f;
+    public float acceleration = 20f;
+    public float deceleration = 25f;
+    private Vector3 currentVelocity;
 
     [Header("Jump")]
     public float jumpForce = 18f;
@@ -15,7 +19,10 @@ public class PlayerMovement : MonoBehaviour
     public float coyoteTime = 0.15f;
 
     [Header("Jump Buffer")]
-public float jumpBufferTime = 0.15f;
+    public float jumpBufferTime = 0.15f;
+
+    [Header("Air Control")]
+    public float airControlMultiplier = 0.6f;
 
     [Header("Gravity")]
     public float gravityMultiplier = 2f;
@@ -42,10 +49,22 @@ public float jumpBufferTime = 0.15f;
     {
         CheckGrounded();
 
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
+        Vector2 input = Vector2.zero;
 
-        moveInput = new Vector3(horizontal, 0f, vertical).normalized;
+input.x = Input.GetAxisRaw("Horizontal");
+input.y = Input.GetAxisRaw("Vertical");
+
+if (Gamepad.current != null)
+{
+    Vector2 stickInput = Gamepad.current.leftStick.ReadValue();
+
+    if (stickInput.magnitude > 0.1f)
+    {
+        input = stickInput;
+    }
+}
+
+moveInput = new Vector3(input.x, 0f, input.y).normalized;
 
         if (isGrounded)
         {
@@ -56,7 +75,14 @@ public float jumpBufferTime = 0.15f;
             coyoteTimeCounter -= Time.deltaTime;
         }
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        bool jumpPressed = Input.GetKeyDown(KeyCode.Space);
+
+if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame)
+{
+    jumpPressed = true;
+}
+
+if (jumpPressed)
 {
     jumpBufferCounter = jumpBufferTime;
 }
@@ -87,10 +113,32 @@ if (jumpBufferCounter > 0f)
 
     private void FixedUpdate()
     {
-        Vector3 velocity = moveInput * moveSpeed;
-        velocity.y = rb.linearVelocity.y;
+        Vector3 targetVelocity = moveInput * moveSpeed;
 
-        rb.linearVelocity = velocity;
+float currentAcceleration = acceleration;
+
+if (!isGrounded)
+{
+    currentAcceleration *= airControlMultiplier;
+}
+
+float controlRate = moveInput.magnitude > 0f
+    ? currentAcceleration
+    : deceleration;
+    
+currentVelocity = Vector3.MoveTowards(
+    currentVelocity,
+    targetVelocity,
+    controlRate * Time.fixedDeltaTime
+);
+
+Vector3 velocity = new Vector3(
+    currentVelocity.x,
+    rb.linearVelocity.y,
+    currentVelocity.z
+);
+
+rb.linearVelocity = velocity;
 
         if (rb.linearVelocity.y < 0f)
         {
