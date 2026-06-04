@@ -9,6 +9,9 @@ public class PlayerMovement : MonoBehaviour
     public float deceleration = 25f;
     private Vector3 currentVelocity;
 
+    [Header("Camera")]
+    public Transform cameraTransform;
+
     [Header("Jump")]
     public float jumpForce = 18f;
 
@@ -113,7 +116,24 @@ if (jumpBufferCounter > 0f)
 
     private void FixedUpdate()
     {
-        Vector3 targetVelocity = moveInput * moveSpeed;
+Vector3 moveDirection = moveInput;
+
+if (cameraTransform != null)
+{
+    Vector3 cameraForward = cameraTransform.forward;
+    Vector3 cameraRight = cameraTransform.right;
+
+    cameraForward.y = 0f;
+    cameraRight.y = 0f;
+
+    cameraForward.Normalize();
+    cameraRight.Normalize();
+
+    moveDirection = cameraForward * moveInput.z + cameraRight * moveInput.x;
+    moveDirection.Normalize();
+}
+
+Vector3 targetVelocity = moveDirection * moveSpeed;
 
 float currentAcceleration = acceleration;
 
